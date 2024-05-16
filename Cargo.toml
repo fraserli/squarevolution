@@ -1,0 +1,10 @@
+[package]
+name = "squarevolution"
+version = "0.1.0"
+authors = ["Fraser Li"]
+edition = "2021"
+repository = "https://github.com/fraserli/squarevolution"
+license = "AGPL-3.0-or-later"
+
+[dependencies]
+notan = "0.12.0"
