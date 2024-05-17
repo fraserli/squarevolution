@@ -1,8 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-const CHUNK_SIZE: i32 = 128;
-
-#[derive(PartialEq, Eq, Clone, Copy, PartialOrd, Ord, Debug)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub struct Coord {
     pub x: i32,
     pub y: i32,
@@ -26,9 +24,21 @@ impl Coord {
             Coord { x: x + 1, y: y + 1 },
         ]
     }
+}
 
-    fn chunk(&self) -> (i32, i32) {
-        (self.x / CHUNK_SIZE, self.y / CHUNK_SIZE)
+impl std::cmp::PartialOrd for Coord {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(&other))
+    }
+}
+
+impl std::cmp::Ord for Coord {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        if self.y != other.y {
+            self.y.cmp(&other.y)
+        } else {
+            self.x.cmp(&other.x)
+        }
     }
 }
 
@@ -38,24 +48,17 @@ pub struct Cell;
 #[derive(Default)]
 pub struct Grid {
     cells: BTreeMap<Coord, Cell>,
-    active_chunks: BTreeSet<(i32, i32)>,
 }
 
 impl Grid {
     pub fn cycle(&mut self, coord: Coord) {
-        self.active_chunks.insert(coord.chunk());
-
         if self.cells.remove(&coord).is_none() {
             self.cells.insert(coord, Default::default());
         };
     }
 
-    pub fn get(&self, coord: Coord) -> Option<Cell> {
-        if self.active_chunks.contains(&coord.chunk()) {
-            self.cells.get(&coord).copied()
-        } else {
-            None
-        }
+    pub fn get(&self, (a, b): (Coord, Coord)) -> impl Iterator<Item = (Coord, Cell)> + '_ {
+        self.cells.range(a..=b).map(|(&coord, &cell)| (coord, cell))
     }
 
     pub fn step(&mut self) {
@@ -82,8 +85,6 @@ impl Grid {
             .collect();
 
         self.cells = cells;
-
-        self.active_chunks = self.cells.keys().map(Coord::chunk).collect();
     }
 
     pub fn multistep(&mut self, n: u128) {

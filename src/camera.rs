@@ -92,11 +92,11 @@ impl Camera {
         Mat4::from_scale_rotation_translation(scale, rotation, translation)
     }
 
-    /// Gets the coordinates of all the grid cells which are visible.
-    pub fn visible_coords(&self) -> impl Iterator<Item = Coord> {
+    /// Gets the coordinates of the cells in the bottom left and top right.
+    pub fn visible_coords(&self) -> (Coord, Coord) {
         let min = self.get_coord(0, self.window.y as i32);
         let max = self.get_coord(self.window.x as i32, 0);
 
-        (min.y..=max.y).flat_map(move |y| (min.x..=max.x).map(move |x| Coord { x, y }))
+        (min, max)
     }
 }

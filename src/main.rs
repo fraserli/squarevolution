@@ -3,6 +3,8 @@
 mod camera;
 mod grid;
 
+use std::collections::BTreeSet;
+
 use notan::draw::*;
 use notan::math::*;
 use notan::prelude::*;
@@ -10,6 +12,7 @@ use notan::prelude::*;
 use crate::camera::Camera;
 use crate::grid::{Coord, Grid};
 
+const CELL_COLOUR: Color = Color::from_rgb(0.9, 0.9, 0.9);
 const CELL_SIZE: f32 = 32.0;
 const STEPS_PER_SECOND: f64 = 50.0;
 const STEP_TIME: u128 = (1_000_000_000.0 / STEPS_PER_SECOND) as u128;
@@ -97,24 +100,34 @@ fn draw(gfx: &mut Graphics, state: &mut State) {
     let mut draw = gfx.create_draw();
     draw.set_projection(Some(state.camera.projection()));
 
-    let render_grid = state.camera.zoom() > 0.5;
-    let c = (0.1 * state.camera.zoom()).min(0.1);
+    let bounds = state.camera.visible_coords();
+    let cells = state.grid.get(bounds);
 
-    draw.clear(if render_grid {
-        Color::from_rgb(c, c, c)
+    if state.camera.zoom() < 0.5 {
+        draw.clear(Color::BLACK);
+        for (coord, _) in cells {
+            let (x, y) = coord.to_f32();
+            draw.rect((x + 0.05, y + 0.05), (0.9, 0.9))
+                .color(CELL_COLOUR);
+        }
     } else {
-        Color::BLACK
-    });
+        // Render the grid
+        let c = (0.1 * state.camera.zoom()).min(0.1);
+        draw.clear(Color::from_rgb(c, c, c));
 
-    for coord in state.camera.visible_coords() {
-        let (x, y) = coord.to_f32();
-        if state.grid.get(coord).is_some() {
-            draw.rect((x + 0.05, y + 0.05), (0.9, 0.9))
-                .color(Color::from_rgb(0.9, 0.9, 0.9));
-        } else if render_grid {
-            draw.rect((x + 0.05, y + 0.05), (0.9, 0.9))
-                .color(Color::BLACK);
-        };
+        let coords: BTreeSet<Coord> = cells.map(|(c, _)| c).collect();
+        let (min, max) = bounds;
+
+        for y in min.y..=max.y {
+            for x in min.x..=max.x {
+                draw.rect((x as f32 + 0.05, y as f32 + 0.05), (0.9, 0.9))
+                    .color(if coords.contains(&Coord { x, y }) {
+                        CELL_COLOUR
+                    } else {
+                        Color::BLACK
+                    });
+            }
+        }
     }
 
     gfx.render(&draw);
